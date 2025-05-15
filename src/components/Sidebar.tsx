@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  HomeIcon, 
-  ChartBarIcon, 
+  HomeModernIcon, 
+  CpuChipIcon,
   ClockIcon, 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -13,8 +13,8 @@ import {
 } from '@heroicons/react/24/outline'
 
 const menuItems = [
-  { name: 'Dashboard', icon: HomeIcon, path: '/' },
-  { name: 'Nodes', icon: ChartBarIcon, path: '/nodes' },
+  { name: 'Dashboard', icon: HomeModernIcon, path: '/' },
+  { name: 'Nodes', icon: CpuChipIcon, path: '/nodes' },
   { name: 'History', icon: ClockIcon, path: '/history' },
 ]
 
@@ -40,7 +40,7 @@ const Sidebar = () => {
     <div 
       className={`${
         isExpanded ? 'w-64' : 'w-20'
-      } bg-[#1a3c61] min-h-screen text-white transition-all duration-300 ease-in-out relative shadow-lg`}
+      } bg-[#1a3c61] min-h-screen text-white transition-all duration-300 ease-in-out relative shadow-lg z-10`}
     >
       {/* Logo Section */}
       <div className={`flex items-center ${isExpanded ? 'justify-start px-6' : 'justify-center'} h-20 border-b border-[#2a4c71]`}>

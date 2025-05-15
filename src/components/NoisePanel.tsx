@@ -36,8 +36,8 @@ const NoisePanel = () => {
     .sort((a, b) => b.noise - a.noise)
 
   const getNoiseClass = (noise: number, duration: number) => {
-    // Tier 3 (Red): >85 dB
-    if (noise > 85) {
+    // Tier 3 (Alert Strike 3): >85 dB for 15+ minutes
+    if (noise > 85 && duration >= 15) {
       return {
         bg: 'bg-red-50',
         border: 'border-red-500',
@@ -45,7 +45,7 @@ const NoisePanel = () => {
         indicator: 'rgba(255, 0, 0, 0.8)'
       }
     }
-    // Tier 2 (Orange): 71-85 dB for 15+ minutes
+    // Tier 2 (Alert Strike 2): 71-85 dB for 15+ minutes
     if (noise >= 71 && noise <= 85 && duration >= 15) {
       return {
         bg: 'bg-orange-50',
@@ -54,8 +54,8 @@ const NoisePanel = () => {
         indicator: 'rgba(255, 140, 0, 0.75)'
       }
     }
-    // Tier 1 (Yellow): 55-70 dB for 5+ minutes
-    if (noise >= 55 && noise <= 70 && duration >= 5) {
+    // Tier 1 (Alert Strike 1): 71-85 dB for 5+ minutes
+    if (noise >= 71 && noise <= 85 && duration >= 5) {
       return {
         bg: 'bg-yellow-50',
         border: 'border-yellow-500',
@@ -63,7 +63,7 @@ const NoisePanel = () => {
         indicator: 'rgba(255, 255, 0, 0.7)'
       }
     }
-    // Default state for noise levels that don't meet duration thresholds
+    // Default state
     return {
       bg: 'bg-green-50',
       border: 'border-green-500',
@@ -94,23 +94,23 @@ const NoisePanel = () => {
           <div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <span>Tier 3: &gt;85 dB</span>
+              <span>Tier 3: &gt;85 dB (15+ min)</span>
             </div>
-            <div className="ml-5 text-gray-500 text-xs">Immediate Alert</div>
+            <div className="ml-5 text-gray-500 text-xs">Alert Strike 3</div>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-              <span>Tier 2: 71-85 dB</span>
+              <span>Tier 2: 71-85 dB (15+ min)</span>
             </div>
-            <div className="ml-5 text-gray-500 text-xs">For 15+ minutes</div>
+            <div className="ml-5 text-gray-500 text-xs">Alert Strike 2</div>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <span>Tier 1: 55-70 dB</span>
+              <span>Tier 1: 71-85 dB (5+ min)</span>
             </div>
-            <div className="ml-5 text-gray-500 text-xs">For 5+ minutes</div>
+            <div className="ml-5 text-gray-500 text-xs">Alert Strike 1</div>
           </div>
         </div>
       </div>

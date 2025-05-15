@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Map from 'ol/Map'
 import View from 'ol/View'
 import { Tile as TileLayer } from 'ol/layer'
-import { OSM } from 'ol/source'
+import { XYZ } from 'ol/source'
 import { fromLonLat, getPointResolution } from 'ol/proj'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
@@ -21,6 +21,7 @@ type BaseNodeType = {
   noisePeak: number
   location: string
   duration?: number
+  consecutiveIntervals?: number
 }
 
 type DetailedNodeType = BaseNodeType & {
@@ -49,22 +50,29 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
   const animationFrameRef = useRef<number>()
   const startTimeRef = useRef<number>(0)
   const [hoveredFeature, setHoveredFeature] = useState<Feature<Point> | null>(null)
+  const previousSelectedNode = useRef<DetailedNodeType | null>(null)
+  const vectorSourceRef = useRef<VectorSource | null>(null)
+  const vectorLayerRef = useRef<VectorLayer<VectorSource> | null>(null)
 
-  const getNoiseColor = (noisePeak: number, duration?: number) => {
-    // Tier 3 (Red): >85 dB
+  const getNoiseColor = (noisePeak: number, intervals?: number) => {
+    // Tier 3 (Alert Strike 3): >85 dB (immediate)
     if (noisePeak > 85) {
-      return [255, 0, 0, 0.8] // Red
+      return [239, 68, 68, 0.8] // #EF4444 Red
     }
-    // Tier 2 (Orange): 71-85 dB for 15+ minutes
-    if (noisePeak >= 71 && noisePeak <= 85 && duration && duration >= 15) {
-      return [255, 140, 0, 0.75] // Orange
+    // Tier 2 (Alert Strike 2): 71-85 dB for 3 consecutive intervals (15 min)
+    if (noisePeak >= 71 && noisePeak <= 85 && intervals && intervals >= 3) {
+      return [249, 115, 22, 0.75] // #F97316 Orange
     }
-    // Tier 1 (Yellow): 55-70 dB for 5+ minutes
-    if (noisePeak >= 55 && noisePeak <= 70 && duration && duration >= 5) {
-      return [255, 255, 0, 0.7] // Yellow
+    // Tier 1 (Alert Strike 1): 71-85 dB first interval
+    if (noisePeak >= 71 && noisePeak <= 85 && intervals && intervals >= 1) {
+      return [234, 179, 8, 0.7] // #EAB308 Yellow
     }
-    // Default state
-    return [50, 205, 50, 0.65] // Light green
+    // Normal (55-70 dB)
+    if (noisePeak >= 55 && noisePeak <= 70) {
+      return [34, 197, 94, 0.65] // #22C55E Green
+    }
+    // Below threshold
+    return [128, 128, 128, 0.5] // Gray for below threshold
   }
 
   const groupNodesByLocation = () => {
@@ -94,156 +102,136 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
     return Object.values(groups)
   }
 
-  // Calculate fixed 15-meter radius in pixels
+  // Calculate accurate 15-meter radius in pixels
   const calculateRadius = (coordinates: number[], resolution: number) => {
     const view = mapInstanceRef.current?.getView()
     if (!view) return 0
 
     const projection = view.getProjection()
     const metersPerUnit = projection.getMetersPerUnit() || 1
-    const pointResolution = getPointResolution(projection, resolution, coordinates)
     
-    // Convert 15 meters to map units and maintain constant size
-    return (15 / metersPerUnit) / pointResolution
+    // Convert 15 meters to map units (EPSG:3857 uses meters)
+    const radius = 15 / metersPerUnit
+    
+    // Scale radius based on resolution to maintain constant ground size
+    const pointResolution = getPointResolution(
+      projection,
+      resolution,
+      coordinates
+    )
+    
+    return radius / pointResolution
+  }
+
+  const createFeatures = (currentZoom: number) => {
+    return nodes.map(node => {
+      const feature = new Feature<Point>({
+        geometry: new Point(fromLonLat([node.lng, node.lat])),
+        properties: node
+      })
+
+      const color = getNoiseColor(node.noisePeak, node.consecutiveIntervals)
+      const isSelected = selectedNode && node.id === selectedNode.id
+
+      const renderFunction: RenderFunction = (coords, state) => {
+        if (!coords || !Array.isArray(coords) || coords.length < 2) return
+
+        const ctx = state.context
+        const pixelRatio = state.pixelRatio
+        const coordinates = coords.map(Number)
+        const [x, y] = coordinates
+
+        // Calculate radius in screen pixels with proper scaling
+        const baseRadius = calculateRadius(coordinates, state.resolution)
+        const screenRadius = baseRadius * pixelRatio
+
+        // Minimal pulsing effect only for selected nodes
+        let finalRadius = screenRadius
+        if (isSelected) {
+          const currentTime = Date.now()
+          if (!startTimeRef.current) startTimeRef.current = currentTime
+          const elapsed = currentTime - startTimeRef.current
+          const pulseScale = 1 + Math.sin(elapsed / 500) * 0.1
+          finalRadius *= pulseScale
+        }
+
+        // Draw circle with semi-transparent fill
+        ctx.beginPath()
+        ctx.arc(Number(x), Number(y), finalRadius, 0, 2 * Math.PI)
+        ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] * 0.6})`
+        ctx.fill()
+
+        // Add subtle border
+        ctx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`
+        ctx.lineWidth = isSelected ? 2 : 1
+        ctx.stroke()
+
+        // Dynamic text sizing based on zoom level
+        const zoomFactor = Math.max(0.5, Math.min(currentZoom / 15, 1.2))
+        const fontSize = Math.max(12, Math.min(14 * zoomFactor, 16))
+        ctx.font = `600 ${fontSize}px 'Inter', system-ui, -apple-system, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+
+        // Show noise level
+        const text = `${node.noisePeak} dB`
+
+        // Add subtle shadow for depth
+        ctx.save()
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
+        ctx.shadowBlur = 2
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 1
+
+        // Simple white outline for contrast
+        ctx.strokeStyle = 'white'
+        ctx.lineWidth = 3
+        ctx.lineJoin = 'round'
+        ctx.strokeText(text, Number(x), Number(y))
+
+        // Text fill with black color
+        ctx.fillStyle = '#000000'
+        ctx.fillText(text, Number(x), Number(y))
+
+        ctx.restore()
+
+        if (isSelected) {
+          animationFrameRef.current = requestAnimationFrame(() => {
+            feature.changed()
+          })
+        }
+      }
+
+      feature.setStyle(new Style({ renderer: renderFunction }))
+      return feature
+    })
   }
 
   useEffect(() => {
     if (!mapRef.current) return
 
-    const createFeatures = (currentZoom: number) => {
-      // Show grouped averages when zoomed out (zoom < 16)
-      const displayNodes = currentZoom < 16 ? groupNodesByLocation() : nodes
-      
-      const features = displayNodes
-        .filter((node): node is NodeType => 
-          typeof node === 'object' && 
-          node !== null && 
-          'noisePeak' in node && 
-          typeof node.noisePeak === 'number' && 
-          'location' in node &&
-          typeof node.location === 'string' &&
-          'lat' in node &&
-          typeof node.lat === 'number' &&
-          'lng' in node &&
-          typeof node.lng === 'number'
-        )
-        .map(node => {
-          const feature = new Feature<Point>({
-            geometry: new Point(fromLonLat([node.lng, node.lat])),
-            properties: node
-          })
-
-          const color = getNoiseColor(node.noisePeak, node.duration)
-          const isSelected = selectedNode && 'id' in node && selectedNode.id === node.id
-          const isHovered = hoveredFeature === feature
-
-          const renderFunction: RenderFunction = (coords, state) => {
-            if (!coords || !Array.isArray(coords) || coords.length < 2) return
-
-            const ctx = state.context
-            const pixelRatio = state.pixelRatio
-            const coordinates = coords.map(Number)
-            const [x, y] = coordinates
-
-            // Calculate radius in screen pixels
-            const baseRadius = calculateRadius(coordinates, state.resolution)
-            const screenRadius = baseRadius * pixelRatio
-
-            // Add pulsing effect for selected or hovered nodes
-            let finalRadius = screenRadius
-            if (isSelected || isHovered) {
-              const currentTime = Date.now()
-              if (!startTimeRef.current) startTimeRef.current = currentTime
-              const elapsed = currentTime - startTimeRef.current
-              const pulseScale = 1 + Math.sin(elapsed / 500) * 0.2
-              finalRadius *= pulseScale
-            }
-
-            // Enhanced glow effect
-            const numLayers = isSelected || isHovered ? 12 : 8
-            for (let i = numLayers; i >= 0; i--) {
-              const layerRadius = finalRadius * (1 + i * 0.15)
-              const alpha = color[3] * (1 - (i / numLayers) * 0.8)
-
-              ctx.beginPath()
-              ctx.arc(Number(x), Number(y), layerRadius, 0, 2 * Math.PI)
-              ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`
-              ctx.fill()
-            }
-
-            // Draw main circle with stronger opacity
-            ctx.beginPath()
-            ctx.arc(Number(x), Number(y), finalRadius, 0, 2 * Math.PI)
-            ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] * 1.2})`
-            ctx.fill()
-
-            // Enhanced stroke
-            ctx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.9)`
-            ctx.lineWidth = isSelected || isHovered ? 3 : 2
-            ctx.stroke()
-
-            // Improved text rendering
-            const fontSize = Math.max(12, Math.min(finalRadius / 3, 16))
-            ctx.font = `bold ${fontSize}px Arial`
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'middle'
-
-            const nodeCount = 'count' in node ? ` (${node.count})` : ''
-            const text = currentZoom < 16 
-              ? `${node.location}\n${node.noisePeak} dB${nodeCount}`
-              : `${node.noisePeak} dB`
-
-            // Enhanced text visibility with white outline
-            const lines = text.split('\n')
-            const lineHeight = fontSize * 1.2
-
-            lines.forEach((line, i) => {
-              const yOffset = (i - (lines.length - 1) / 2) * lineHeight
-              const yPos = Number(y) + yOffset
-              
-              // Draw outline
-              ctx.strokeStyle = 'white'
-              ctx.lineWidth = 4
-              ctx.strokeText(line, Number(x), yPos)
-              
-              // Draw text
-              ctx.fillStyle = 'black'
-              ctx.fillText(line, Number(x), yPos)
-            })
-
-            if (isSelected || isHovered) {
-              animationFrameRef.current = requestAnimationFrame(() => {
-                feature.changed()
-              })
-            }
-          }
-
-          feature.setStyle(new Style({ renderer: renderFunction }))
-          return feature
-        })
-
-      return features
-    }
-
     if (!mapInstanceRef.current) {
-      const vectorSource = new VectorSource({
-        features: createFeatures(zoom)
-      })
+      const vectorSource = new VectorSource()
+      vectorSourceRef.current = vectorSource
 
       const vectorLayer = new VectorLayer({
         source: vectorSource,
         updateWhileAnimating: true,
         updateWhileInteracting: true
       })
+      vectorLayerRef.current = vectorLayer
+
+      const googleMapsLayer = new TileLayer({
+        source: new XYZ({
+          url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+          maxZoom: 19,
+          attributions: '© Google Maps'
+        })
+      })
 
       mapInstanceRef.current = new Map({
         target: mapRef.current,
-        layers: [
-          new TileLayer({
-            source: new OSM()
-          }),
-          vectorLayer
-        ],
+        layers: [googleMapsLayer, vectorLayer],
         view: new View({
           center: fromLonLat([center[1], center[0]]),
           zoom: zoom,
@@ -253,91 +241,92 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
         })
       })
 
-      // Handle zoom changes
+      // Handle zoom changes without recreating features
       mapInstanceRef.current.getView().on('change:resolution', () => {
-        const currentZoom = mapInstanceRef.current?.getView().getZoom() || zoom
-        vectorSource.clear()
-        vectorSource.addFeatures(createFeatures(currentZoom))
+        if (vectorLayerRef.current) {
+          vectorLayerRef.current.changed()
+        }
       })
 
-      // Handle pointer interactions
-      mapInstanceRef.current.on('pointermove', (event) => {
-        const feature = mapInstanceRef.current?.forEachFeatureAtPixel(
-          event.pixel,
-          feature => feature as Feature<Point>
-        )
-        setHoveredFeature(feature || null)
-      })
-
-      // Handle click events - only for hover effect, no zooming
       mapInstanceRef.current.on('click', (event) => {
         const feature = mapInstanceRef.current?.forEachFeatureAtPixel(
           event.pixel,
           feature => feature as Feature<Point>
         )
-        setHoveredFeature(feature || null)
+        if (feature && mapInstanceRef.current) {
+          const props = feature.getProperties().properties as DetailedNodeType
+          const view = mapInstanceRef.current.getView()
+          const coordinates = fromLonLat([props.lng, props.lat])
+          
+          view.animate({
+            center: coordinates,
+            duration: 1000
+          })
+        }
       })
-    } else {
-      // Update features without changing view
-      const vectorLayer = mapInstanceRef.current.getLayers().getArray()[1] as VectorLayer<VectorSource>
-      const source = vectorLayer.getSource()
-      if (source) {
-        source.clear()
-        source.addFeatures(createFeatures(zoom))
+    }
+
+    // Update features when nodes or selection changes
+    if (vectorSourceRef.current) {
+      const currentZoom = mapInstanceRef.current?.getView().getZoom() || zoom
+      vectorSourceRef.current.clear()
+      vectorSourceRef.current.addFeatures(createFeatures(currentZoom))
+    }
+
+    // Handle smooth transitions when selectedNode changes
+    if (selectedNode !== previousSelectedNode.current) {
+      const view = mapInstanceRef.current?.getView()
+      if (view && selectedNode) {
+        view.animate({
+          center: fromLonLat([selectedNode.lng, selectedNode.lat]),
+          duration: 1000
+        })
       }
     }
+    
+    previousSelectedNode.current = selectedNode
 
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
       }
       startTimeRef.current = 0
-      setHoveredFeature(null)
     }
-  }, [nodes, selectedNode, center, zoom, hoveredFeature])
+  }, [nodes, selectedNode, center, zoom])
 
   return (
     <div ref={mapRef} className="w-full h-full relative">
       <div className="absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow-lg z-10">
-        <h3 className="font-semibold mb-2">Noise Tiers</h3>
-        <div className="space-y-2">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: 'rgba(255, 0, 0, 0.8)' }}></div>
-              <span className="text-sm">Tier 3 (&gt;85 dB)</span>
-            </div>
-            <div className="ml-6 text-xs text-gray-600">
-              Immediate Alert
+        <div className="grid grid-cols-1 gap-1.5 min-w-[140px]">
+          <div className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-gray-50">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)' }}></div>
+            <div className="flex-1">
+              <div className="text-xs font-medium">Tier 3</div>
+              <div className="text-xs text-gray-500">&gt;85 dB</div>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: 'rgba(255, 140, 0, 0.75)' }}></div>
-              <span className="text-sm">Tier 2 (71-85 dB)</span>
-            </div>
-            <div className="ml-6 text-xs text-gray-600">
-              Continuous for 15+ minutes
+          <div className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-gray-50">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(249, 115, 22, 0.75)' }}></div>
+            <div className="flex-1">
+              <div className="text-xs font-medium">Tier 2</div>
+              <div className="text-xs text-gray-500">71-85 dB (15m+)</div>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: 'rgba(255, 255, 0, 0.7)' }}></div>
-              <span className="text-sm">Tier 1 (55-70 dB)</span>
-            </div>
-            <div className="ml-6 text-xs text-gray-600">
-              Continuous for 5+ minutes
+          <div className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-gray-50">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(234, 179, 8, 0.7)' }}></div>
+            <div className="flex-1">
+              <div className="text-xs font-medium">Tier 1</div>
+              <div className="text-xs text-gray-500">71-85 dB (5m)</div>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: 'rgba(50, 205, 50, 0.65)' }}></div>
-              <span className="text-sm">Normal</span>
-            </div>
-            <div className="ml-6 text-xs text-gray-600">
-              Below threshold or duration
+          <div className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-gray-50">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(34, 197, 94, 0.65)' }}></div>
+            <div className="flex-1">
+              <div className="text-xs font-medium">Normal</div>
+              <div className="text-xs text-gray-500">55-70 dB</div>
             </div>
           </div>
         </div>
