@@ -27,7 +27,7 @@ const NOISE_CATEGORIES = [
   },
   { 
     label: 'Tier 1',
-    range: '71-85 dB (5 mins)',
+    range: '71-85 dB (15+ mins)',
     color: '#EAB308',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-800',
@@ -36,7 +36,7 @@ const NOISE_CATEGORIES = [
   },
   { 
     label: 'Tier 2',
-    range: '71-85 dB (15+ min)',
+    range: '86-100 dB (15+ min)',
     color: '#F97316',
     bgColor: 'bg-orange-100',
     textColor: 'text-orange-800',
@@ -45,7 +45,7 @@ const NOISE_CATEGORIES = [
   },
   { 
     label: 'Tier 3',
-    range: '>85 dB',
+    range: '>101 dB (Spike)',
     color: '#EF4444',
     bgColor: 'bg-red-100',
     textColor: 'text-red-800',
@@ -94,7 +94,7 @@ const dashboardData = [
       id: 2,
     name: "Filter Site Node 2",
     noiseLevel: 75,
-    noiseTier: 2,
+    noiseTier: 1,
     duration: 15,
     timeTriggered: "08:15 AM",
     batteryLevel: 100
@@ -103,8 +103,8 @@ const dashboardData = [
       id: 3,
     name: "Filter Site Node 3",
     noiseLevel: 90,
-    noiseTier: 3,
-    duration: 5,
+    noiseTier: 2,
+    duration: 15,
     timeTriggered: "08:45 AM",
     batteryLevel: 100
     },
@@ -112,7 +112,7 @@ const dashboardData = [
       id: 4,
     name: "Tahna Node 1",
     noiseLevel: 82,
-    noiseTier: 2,
+    noiseTier: 1,
     duration: 15,
     timeTriggered: "08:10 AM",
     batteryLevel: 100
@@ -139,8 +139,8 @@ const dashboardData = [
       id: 7,
     name: "San Miguel Node 1",
     noiseLevel: 95,
-    noiseTier: 3,
-    duration: 5,
+    noiseTier: 2,
+    duration: 15,
     timeTriggered: "08:25 AM",
     batteryLevel: 100
     },
@@ -148,7 +148,7 @@ const dashboardData = [
       id: 8,
     name: "San Miguel Node 2",
     noiseLevel: 83,
-    noiseTier: 2,
+    noiseTier: 1,
     duration: 15,
     timeTriggered: "08:05 AM",
     batteryLevel: 100
@@ -183,14 +183,14 @@ const getNoiseLevelStyle = (noiseLevel: number, duration: number) => {
   const baseThreshold = isDayTime ? 55 : 45
 
   // Tier 3 (Red): >85 dB (immediate)
-  if (noiseLevel > 85) {
+  if (noiseLevel > 101) {
     return {
       bg: 'bg-red-100',
       text: 'text-red-800'
     }
   }
   // Tier 2 (Orange): 71-85 dB for 15+ minutes
-  if (noiseLevel >= 71 && noiseLevel <= 85 && duration >= 15) {
+  if (noiseLevel >= 86 && noiseLevel <= 100 && duration >= 15) {
     return {
       bg: 'bg-orange-100',
       text: 'text-orange-800'
@@ -219,9 +219,9 @@ const getNoiseLevelStyle = (noiseLevel: number, duration: number) => {
 
 // Function to get noise tier label
 const getNoiseTierLabel = (noiseLevel: number, duration: number) => {
-  if (noiseLevel > 85) return 'Tier 3'
-  if (noiseLevel >= 71 && noiseLevel <= 85 && duration >= 15) return 'Tier 2'
-  if (noiseLevel >= 71 && noiseLevel <= 85 && duration >= 5) return 'Tier 1'
+  if (noiseLevel > 101) return 'Tier 3'
+  if (noiseLevel >= 86 && noiseLevel <= 100 && duration >= 15) return 'Tier 2'
+  if (noiseLevel >= 71 && noiseLevel <= 85 && duration >= 15) return 'Tier 1'
   return 'Normal'
 }
 
@@ -414,7 +414,7 @@ export default function NodesPage() {
                           </span>
                           <span className="text-xs text-gray-500">
                             {index === 0 && 'Standard acceptable level'}
-                            {index === 1 && '5+ minutes exposure'}
+                            {index === 1 && '15+ minutes exposure'}
                             {index === 2 && '15+ minutes exposure'}
                             {index === 3 && 'Immediate action required'}
                           </span>

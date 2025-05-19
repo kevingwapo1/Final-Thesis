@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  HomeModernIcon, 
-  CpuChipIcon,
+  Squares2X2Icon, 
+  LinkIcon,
   ClockIcon, 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -13,8 +13,8 @@ import {
 } from '@heroicons/react/24/outline'
 
 const menuItems = [
-  { name: 'Dashboard', icon: HomeModernIcon, path: '/' },
-  { name: 'Nodes', icon: CpuChipIcon, path: '/nodes' },
+  { name: 'Dashboard', icon: Squares2X2Icon, path: '/' },
+  { name: 'Nodes', icon: LinkIcon, path: '/nodes' },
   { name: 'History', icon: ClockIcon, path: '/history' },
 ]
 
@@ -22,7 +22,6 @@ const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(false)
   const pathname = usePathname()
 
-  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
@@ -31,7 +30,7 @@ const Sidebar = () => {
     }
 
     window.addEventListener('resize', handleResize)
-    handleResize() // Check on initial load
+    handleResize()
 
     return () => window.removeEventListener('resize', handleResize)
   }, [])
@@ -42,7 +41,6 @@ const Sidebar = () => {
         isExpanded ? 'w-64' : 'w-20'
       } bg-[#1a3c61] min-h-screen text-white transition-all duration-300 ease-in-out relative shadow-lg z-10`}
     >
-      {/* Logo Section */}
       <div className={`flex items-center ${isExpanded ? 'justify-start px-6' : 'justify-center'} h-20 border-b border-[#2a4c71]`}>
         <SpeakerWaveIcon className="w-8 h-8 text-blue-400" />
         {isExpanded && (
@@ -52,7 +50,6 @@ const Sidebar = () => {
         )}
       </div>
 
-      {/* Toggle Button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="absolute -right-4 top-24 bg-[#1a3c61] rounded-full p-2 text-white hover:bg-[#2a4c71] transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-110"
@@ -64,7 +61,6 @@ const Sidebar = () => {
         )}
       </button>
       
-      {/* Navigation Menu */}
       <div className="p-4">
         <nav className="space-y-2">
           {menuItems.map((item) => {

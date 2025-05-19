@@ -40,7 +40,7 @@ const NOISE_CATEGORIES = [
   },
   { 
     label: 'Tier 1',
-    range: '71-85 dB (5 mins)',
+    range: '71-85 dB (15+ mins)',
     color: '#EAB308', // Yellow
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-800',
@@ -50,21 +50,21 @@ const NOISE_CATEGORIES = [
   },
   { 
     label: 'Tier 2',
-    range: '71-85 dB (15+ min)',
+    range: '86-100 dB (15+ mins)',
     color: '#F97316', // Orange
     bgColor: 'bg-orange-100',
     textColor: 'text-orange-800',
-    min: 71,
-    max: 85,
+    min: 86,
+    max: 100,
     intervals: 3
   },
   { 
     label: 'Tier 3',
-    range: '>85 dB',
+    range: '>101 dB (Spike)',
     color: '#EF4444', // Red
     bgColor: 'bg-red-100',
     textColor: 'text-red-800',
-    min: 86,
+    min: 101,
     max: Infinity,
     intervals: 1
   }
@@ -90,7 +90,7 @@ const nodes = [
     name: "Filter Site Node 2",
     lat: 10.303218626609574,
     lng: 123.86352089049124,
-    noiseLevel: "Tier 2",
+    noiseLevel: "Tier 1",
     noisePeak: 75,
     noiseTier: 2,
     consecutiveIntervals: 3,  // 15 minutes (3 x 5-min intervals)
@@ -102,10 +102,10 @@ const nodes = [
     name: "Filter Site Node 3",
     lat: 10.303186459360795,
     lng: 123.86374895418248,
-    noiseLevel: "Tier 3",
+    noiseLevel: "Tier 2",
     noisePeak: 90,
-    noiseTier: 3,
-    consecutiveIntervals: 1,
+    noiseTier: 2,
+    consecutiveIntervals: 3,
     location: "Filter Site",
     timestamp: "2024-02-20 08:45:00"
   },
@@ -118,7 +118,7 @@ const nodes = [
     lng: 123.86873049466762,
     noiseLevel: "Tier 2",
     noisePeak: 82,
-    noiseTier: 2,
+    noiseTier: 1,
     consecutiveIntervals: 3,
     location: "Sitio Tahna",
     timestamp: "2024-02-20 08:10:00"
@@ -133,7 +133,7 @@ const nodes = [
     noiseTier: 0,
     consecutiveIntervals: 1,
     location: "Sitio Tahna",
-    timestamp: "2024-02-20 08:35:00"
+    timestamp: "2024-02 -20 08:35:00"
   },
   {
     id: 6,
@@ -143,7 +143,7 @@ const nodes = [
     noiseLevel: "Tier 1",
     noisePeak: 73,
     noiseTier: 1,
-    consecutiveIntervals: 1,
+    consecutiveIntervals: 3,
     location: "Sitio Tahna",
     timestamp: "2024-02-20 08:40:00"
   },
@@ -154,10 +154,10 @@ const nodes = [
     name: "San Miguel Node 1",
     lat: 10.298220500473846,
     lng: 123.86910419812594,
-    noiseLevel: "Tier 3",
+    noiseLevel: "Tier 2",
     noisePeak: 95,
-    noiseTier: 3,
-    consecutiveIntervals: 1,
+    noiseTier: 2,
+    consecutiveIntervals: 3,
     location: "Sitio San Miguel",
     timestamp: "2024-02-20 08:25:00"
   },
@@ -166,9 +166,9 @@ const nodes = [
     name: "San Miguel Node 2",
     lat: 10.29812542410282,
     lng: 123.86891288419301,
-    noiseLevel: "Tier 2",
+    noiseLevel: "Tier 1",
     noisePeak: 83,
-    noiseTier: 2,
+    noiseTier: 1,
     consecutiveIntervals: 3,
     location: "Sitio San Miguel",
     timestamp: "2024-02-20 08:05:00"
@@ -204,19 +204,19 @@ const NodeCard = ({
   onClick: () => void 
 }) => {
   const getNodeCategory = (noisePeak: number, intervals: number) => {
-    if (noisePeak > 85) {
+    if (noisePeak > 101) {
       return {
         ...NOISE_CATEGORIES[3],
         shadowColor: 'rgba(239, 68, 68, 0.35)' // Red shadow
       }
     }
-    if (noisePeak >= 71 && noisePeak <= 85 && intervals >= 3) {
+    if (noisePeak >= 86 && noisePeak <= 100 && intervals >= 3) {
       return {
         ...NOISE_CATEGORIES[2],
         shadowColor: 'rgba(249, 115, 22, 0.35)' // Orange shadow
       }
     }
-    if (noisePeak >= 71 && noisePeak <= 85) {
+    if (noisePeak >= 71 && noisePeak <= 85 && intervals >= 3) {
       return {
         ...NOISE_CATEGORIES[1],
         shadowColor: 'rgba(234, 179, 8, 0.35)' // Yellow shadow
@@ -291,9 +291,9 @@ const NodeCard = ({
         <div 
           className="absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full h-12"
           style={{ 
-            backgroundColor: node.noisePeak > 85 ? '#EF4444' : 
-                           node.noisePeak >= 71 && node.consecutiveIntervals >= 3 ? '#F97316' :
-                           node.noisePeak >= 71 ? '#EAB308' :
+            backgroundColor: node.noisePeak > 101 ? '#EF4444' : 
+                           node.noisePeak >= 86 && node.consecutiveIntervals >= 3 ? '#F97316' :
+                           node.noisePeak >= 71 && node.consecutiveIntervals >= 3 ? '#EAB308' :
                            '#22C55E'
           }}
         />
@@ -324,13 +324,13 @@ export default function Dashboard() {
         name: `${node.location} Average`,
         lat: centerNode.lat,
         lng: centerNode.lng,
-        noiseLevel: avgNoisePeak > 85 ? "Tier 3" :
-                   avgNoisePeak >= 71 && maxDuration >= 3 ? "Tier 2" :
-                   avgNoisePeak >= 71 ? "Tier 1" : "Normal",
+        noiseLevel: avgNoisePeak > 101 ? "Tier 3" :
+                   avgNoisePeak >= 86 && maxDuration >= 3 ? "Tier 2" :
+                   avgNoisePeak >= 86 ? "Tier 1" : "Normal",
         noisePeak: avgNoisePeak,
-        noiseTier: avgNoisePeak > 85 ? 3 :
-                   avgNoisePeak >= 71 && maxDuration >= 3 ? 2 :
-                   avgNoisePeak >= 71 ? 1 : 0,
+        noiseTier: avgNoisePeak > 101 ? 2 :
+                   avgNoisePeak >= 86 && maxDuration >= 3 ? 2 :
+                   avgNoisePeak >= 86 ? 1 : 0,
         consecutiveIntervals: maxDuration,
         location: node.location,
         timestamp: locationNodes[0].timestamp

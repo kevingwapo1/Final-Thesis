@@ -23,7 +23,7 @@ const NOISE_CATEGORIES = [
   },
   { 
     label: 'Tier 1',
-    range: '71-85 dB (5 mins)',
+    range: '71-85 dB (15+ mins)',
     color: '#EAB308',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-800',
@@ -32,20 +32,20 @@ const NOISE_CATEGORIES = [
   },
   { 
     label: 'Tier 2',
-    range: '71-85 dB (15+ min)',
+    range: '86-100 dB (15+ mins)',
     color: '#F97316',
     bgColor: 'bg-orange-100',
     textColor: 'text-orange-800',
     min: 71,
-    max: 85
+    max: 1
   },
   { 
     label: 'Tier 3',
-    range: '>85 dB',
+    range: '>101 dB (Spike)',
     color: '#EF4444',
     bgColor: 'bg-red-100',
     textColor: 'text-red-800',
-    min: 86,
+    min: 101,
     max: Infinity
   }
 ]
@@ -273,7 +273,7 @@ export default function HistoryPage() {
                         </span>
                         <span className="text-xs text-gray-500">
                           {index === 0 && 'Standard acceptable level'}
-                          {index === 1 && '5+ minutes exposure'}
+                          {index === 1 && '15+ minutes exposure'}
                           {index === 2 && '15+ minutes exposure'}
                           {index === 3 && 'Immediate action required'}
                         </span>

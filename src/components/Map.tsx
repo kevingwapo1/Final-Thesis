@@ -56,11 +56,11 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
 
   const getNoiseColor = (noisePeak: number, intervals?: number) => {
     // Tier 3 (Alert Strike 3): >85 dB (immediate)
-    if (noisePeak > 85) {
+    if (noisePeak > 101) {
       return [239, 68, 68, 0.8] // #EF4444 Red
     }
     // Tier 2 (Alert Strike 2): 71-85 dB for 3 consecutive intervals (15 min)
-    if (noisePeak >= 71 && noisePeak <= 85 && intervals && intervals >= 3) {
+    if (noisePeak >= 86 && noisePeak <= 100 && intervals && intervals >= 3) {
       return [249, 115, 22, 0.75] // #F97316 Orange
     }
     // Tier 1 (Alert Strike 1): 71-85 dB first interval
@@ -302,7 +302,7 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)' }}></div>
             <div className="flex-1">
               <div className="text-xs font-medium">Tier 3</div>
-              <div className="text-xs text-gray-500">&gt;85 dB</div>
+              <div className="text-xs text-gray-500">&gt;101 dB</div>
             </div>
           </div>
 
@@ -310,7 +310,7 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(249, 115, 22, 0.75)' }}></div>
             <div className="flex-1">
               <div className="text-xs font-medium">Tier 2</div>
-              <div className="text-xs text-gray-500">71-85 dB (15m+)</div>
+              <div className="text-xs text-gray-500">86-100 dB (15m+)</div>
             </div>
           </div>
 
@@ -318,7 +318,7 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(234, 179, 8, 0.7)' }}></div>
             <div className="flex-1">
               <div className="text-xs font-medium">Tier 1</div>
-              <div className="text-xs text-gray-500">71-85 dB (5m)</div>
+              <div className="text-xs text-gray-500">71-85 dB (15m+)</div>
             </div>
           </div>
 
