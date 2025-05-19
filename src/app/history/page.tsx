@@ -3,93 +3,10 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
   ArrowDownTrayIcon,
   DocumentArrowDownIcon,
-  FunnelIcon
 } from '@heroicons/react/24/outline'
-
-// Constants for noise level tiers (copy from nodes page)
-const NOISE_CATEGORIES = [
-  {
-    label: 'Normal',
-    range: '55-70 dB',
-    color: '#22C55E',
-    bgColor: 'bg-green-100',
-    textColor: 'text-green-800',
-    min: 55,
-    max: 70
-  },
-  { 
-    label: 'Tier 1',
-    range: '71-85 dB (15+ mins)',
-    color: '#EAB308',
-    bgColor: 'bg-yellow-100',
-    textColor: 'text-yellow-800',
-    min: 71,
-    max: 85
-  },
-  { 
-    label: 'Tier 2',
-    range: '86-100 dB (15+ mins)',
-    color: '#F97316',
-    bgColor: 'bg-orange-100',
-    textColor: 'text-orange-800',
-    min: 71,
-    max: 1
-  },
-  { 
-    label: 'Tier 3',
-    range: '>101 dB (Spike)',
-    color: '#EF4444',
-    bgColor: 'bg-red-100',
-    textColor: 'text-red-800',
-    min: 101,
-    max: Infinity
-  }
-]
-
-// Sample locations
-const locations = [
-  'All Locations',
-  'Filter Site',
-  'Tahna',
-  'San Miguel'
-]
-
-// Sample alert types
-const alertTypes = [
-  'All Alerts',
-  'Tier 1',
-  'Tier 2',
-  'Tier 3'
-]
-
-// Sample data (using the same structure as nodes)
-const historyData = [
-  {
-    id: 1,
-    name: "Filter Site Node 1",
-    noiseLevel: 65,
-    timeTriggered: "2024-02-20 08:30 AM",
-    duration: 5,
-    batteryLevel: 100,
-    status: 'resolved',
-    alertStreak: 1
-  },
-  // ... more sample data can be added here
-]
-
-// Sample data structure for a single record
-const sampleRecord = {
-  coordinates: { lat: 14.6577, lng: 120.9842 },
-  noiseDb: 75,
-  timeRecorded: "2024-02-20 08:30 AM",
-  noiseAlertLevel: "Tier 1",
-  alertStreak: 2,
-  eventType: "Construction Noise"
-}
+import { NOISE_CATEGORIES } from '@/constants'
 
 // Node tabs configuration
 const nodeTabs = [
@@ -104,6 +21,16 @@ const nodeTabs = [
   { id: '8', label: 'Node 8' },
   { id: '9', label: 'Node 9' },
 ]
+
+// Sample data structure for a single record
+const sampleRecord = {
+  coordinates: { lat: 14.6577, lng: 120.9842 },
+  noiseDb: 75,
+  timeRecorded: "2024-02-20 08:30 AM",
+  noiseAlertLevel: "Tier 1",
+  alertStreak: 2,
+  eventType: "Construction Noise"
+}
 
 export default function HistoryPage() {
   const [selectedTab, setSelectedTab] = useState('all')
@@ -132,15 +59,11 @@ export default function HistoryPage() {
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-[#103A5E]">Alert History</h2>
               <div className="flex space-x-3">
-                <button
-                  className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
+                <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                   <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
                   Export CSV
                 </button>
-                <button
-                  className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
+                <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                   <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
                   Export PDF
                 </button>
@@ -248,36 +171,15 @@ export default function HistoryPage() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {NOISE_CATEGORIES.map((category, index) => (
-                  <div 
-                    key={category.label}
-                    className={`
-                      relative overflow-hidden rounded-lg bg-white
-                      transition-all duration-200 ease-in-out
-                      hover:shadow-md
-                      ${index === 0 ? 'border-green-200' : 
-                        index === 1 ? 'border-yellow-200' :
-                        index === 2 ? 'border-orange-200' : 'border-red-200'}
-                      border
-                    `}
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg ${category.bgColor}`}
                   >
-                    <div className="p-4">
-                      <div className="flex flex-col items-center text-center">
-                        <span className={`
-                          w-full py-1 px-3 rounded-full text-xs font-medium mb-3
-                          ${category.bgColor} ${category.textColor}
-                        `}>
-                          {category.label}
-                        </span>
-                        <span className="text-sm font-medium text-gray-900 mb-1">
-                          {category.range}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {index === 0 && 'Standard acceptable level'}
-                          {index === 1 && '15+ minutes exposure'}
-                          {index === 2 && '15+ minutes exposure'}
-                          {index === 3 && 'Immediate action required'}
-                        </span>
-                      </div>
+                    <div className={`text-sm font-medium ${category.textColor}`}>
+                      {category.label}
+                    </div>
+                    <div className={`text-xs ${category.textColor} mt-1`}>
+                      {category.range}
                     </div>
                   </div>
                 ))}

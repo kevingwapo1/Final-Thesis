@@ -102,9 +102,9 @@ const nodes = [
     name: "Filter Site Node 3",
     lat: 10.303186459360795,
     lng: 123.86374895418248,
-    noiseLevel: "Tier 2",
-    noisePeak: 90,
-    noiseTier: 2,
+    noiseLevel: "Tier 3",
+    noisePeak: 120,
+    noiseTier: 3,
     consecutiveIntervals: 3,
     location: "Filter Site",
     timestamp: "2024-02-20 08:45:00"
